@@ -1,0 +1,135 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  accounts      Account[]
+  sessions      Session[]
+  habits        Habit[]
+  habitLogs     HabitLog[]
+  goals         Goal[]
+  journalEntries JournalEntry[]
+  metrics       DailyMetric[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+  @@unique([identifier, token])
+}
+
+model Habit {
+  id          String     @id @default(cuid())
+  userId      String
+  name        String
+  description String?
+  category    String     // health, work, personal, finance
+  frequency   String     @default("daily") // daily, weekly
+  targetCount Int        @default(1)
+  color       String     @default("#6366f1")
+  icon        String     @default("⭐")
+  streak      Int        @default(0)
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+  user        User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  logs        HabitLog[]
+  @@index([userId])
+}
+
+model HabitLog {
+  id        String   @id @default(cuid())
+  habitId   String
+  userId    String
+  date      DateTime @db.Date
+  completed Boolean  @default(true)
+  note      String?
+  createdAt DateTime @default(now())
+  habit     Habit    @relation(fields: [habitId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([habitId, date])
+  @@index([userId, date])
+}
+
+model Goal {
+  id          String   @id @default(cuid())
+  userId      String
+  title       String
+  description String?
+  category    String   // career, health, money, personal, relationship
+  timeframe   String   // 30yr, 5yr, 1yr, quarterly, monthly, weekly
+  status      String   @default("active") // active, completed, paused
+  targetDate  DateTime?
+  progress    Int      @default(0) // 0-100
+  parentId    String?
+  parent      Goal?    @relation("GoalHierarchy", fields: [parentId], references: [id])
+  children    Goal[]   @relation("GoalHierarchy")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@index([userId])
+}
+
+model JournalEntry {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @db.Date
+  content   String
+  mood      Int?     // 1-5
+  energy    Int?     // 1-5
+  gratitude String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, date])
+  @@index([userId])
+}
+
+model DailyMetric {
+  id        String   @id @default(cuid())
+  userId    String
+  date      DateTime @db.Date
+  type      String   // sleep_hours, gym_done, calories, mood, energy, water_glasses
+  value     Float
+  note      String?
+  createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  @@unique([userId, date, type])
+  @@index([userId, date])
+}
