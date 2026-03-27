@@ -5,7 +5,6 @@ import { DashboardClient } from "./dashboard-client"
 async function getDashboardData(userId: string) {
   const today = new Date()
   today.setHours(0, 0, 0, 0)
-  const todayStr = today.toISOString().split("T")[0]
 
   // Habits with today's logs
   const habits = await prisma.habit.findMany({
@@ -28,7 +27,7 @@ async function getDashboardData(userId: string) {
   // Active goals
   const goals = await prisma.goal.findMany({
     where: { userId, status: "active" },
-    orderBy: { timeframe: "asc" },
+    orderBy: { createdAt: "desc" },
     take: 5,
   })
 
@@ -36,6 +35,14 @@ async function getDashboardData(userId: string) {
   const journal = await prisma.journalEntry.findFirst({
     where: { userId, date: today },
   })
+
+  // Check if check-in done today (has gym_done metric for today)
+  const todayMetrics = metrics.filter((m) => {
+    const d = new Date(m.date)
+    d.setHours(0, 0, 0, 0)
+    return d.getTime() === today.getTime()
+  })
+  const checkInDone = todayMetrics.some((m) => m.type === "gym_done")
 
   const completedHabitsToday = habits.filter((h) => h.logs.length > 0).length
   const totalHabitsToday = habits.length
@@ -47,6 +54,8 @@ async function getDashboardData(userId: string) {
     journal,
     completedHabitsToday,
     totalHabitsToday,
+    checkInDone,
+    aibrief: null as string | null, // Phase 2: fetch from AI brief table
   }
 }
 

@@ -6,10 +6,10 @@ import { z } from "zod"
 const createGoalSchema = z.object({
   title: z.string().min(1),
   description: z.string().optional(),
-  category: z.enum(["career", "health", "money", "personal", "relationship"]),
+  category: z.string().default("personal"),
   timeframe: z.enum(["30yr", "5yr", "1yr", "quarterly", "monthly", "weekly"]),
   targetDate: z.string().optional(),
-  parentId: z.string().optional(),
+  parentId: z.string().nullable().optional(),
   progress: z.number().min(0).max(100).default(0),
 })
 
@@ -38,8 +38,13 @@ export async function POST(req: Request) {
 
   const goal = await prisma.goal.create({
     data: {
-      ...data,
+      title: data.title,
+      description: data.description,
+      category: data.category,
+      timeframe: data.timeframe,
       userId: session.user.id,
+      parentId: data.parentId || null,
+      progress: data.progress,
       targetDate: data.targetDate ? new Date(data.targetDate) : undefined,
     },
   })
