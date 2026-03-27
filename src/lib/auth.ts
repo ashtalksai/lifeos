@@ -8,6 +8,7 @@ import { prisma } from "@/lib/db"
 const ALLOWED_EMAILS = ["ashkanhatef@gmail.com"]
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  trustHost: true,
   adapter: PrismaAdapter(prisma),
   providers: [
     Google({
